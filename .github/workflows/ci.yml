@@ -50,7 +50,7 @@ jobs:
           cache: 'maven'
 
       - name: Run integration tests
-        run: mvn failsafe:integration-test failsafe:verify
+        run: mvn verify -DskipTests=false
         # Testcontainers automatically uses the Docker socket available on the runner.
         # On GitHub Actions ubuntu-latest, Docker is pre-installed and the socket
         # is available at /var/run/docker.sock without any additional configuration.
