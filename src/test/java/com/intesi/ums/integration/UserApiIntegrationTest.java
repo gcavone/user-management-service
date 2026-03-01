@@ -82,7 +82,7 @@ class UserApiIntegrationTest {
     @DisplayName("POST /users - creates a user and returns 201")
     void createUser_returns201() throws Exception {
         CreateUserRequest request = new CreateUserRequest(
-            "mario.rossi", "mario.rossi@example.com", "RSSMRA85M01H501Z",
+            "mario.rossi", "mario.rossi@example.com", "RSSMRA80A01H501U",
             "Mario", "Rossi", Set.of(ApplicationRole.DEVELOPER)
         );
 
@@ -106,7 +106,7 @@ class UserApiIntegrationTest {
     @DisplayName("POST /users - returns 409 on duplicate email")
     void createUser_returns409OnDuplicateEmail() throws Exception {
         CreateUserRequest request = new CreateUserRequest(
-            "another.user", "mario.rossi@example.com", "VRDGNN80A01H501U",
+            "another.user", "mario.rossi@example.com", "VRDGNN80A01H501J",
             "Giovanni", "Verdi", Set.of(ApplicationRole.REPORTER)
         );
 
@@ -144,7 +144,7 @@ class UserApiIntegrationTest {
         mockMvc.perform(get("/api/v1/users/" + createdUserId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.email").value("mario.rossi@example.com"))
-            .andExpect(jsonPath("$.codiceFiscale").value("RSSMRA85M01H501Z"));
+            .andExpect(jsonPath("$.codiceFiscale").value("RSSMRA80A01H501U"));
     }
 
     @Test
@@ -234,7 +234,7 @@ class UserApiIntegrationTest {
     @DisplayName("POST /users - VIEWER cannot create users, returns 403")
     void createUser_viewerForbidden() throws Exception {
         CreateUserRequest request = new CreateUserRequest(
-            "test.viewer", "viewer@example.com", "VRDGNN80A01H501U",
+            "test.viewer", "viewer@example.com", "VRDGNN80A01H501J",
             "Test", "Viewer", Set.of(ApplicationRole.REPORTER)
         );
 
