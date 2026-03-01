@@ -117,13 +117,14 @@ services:
     container_name: ums-test-integration
     working_dir: /app
     environment:
-      DOCKER_HOST: unix:///var/run/docker.sock
+      #DOCKER_HOST: unix:///var/run/docker.sock
       TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /var/run/docker.sock
       TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
     volumes:
       - .:/app
       - maven-cache:/root/.m2
-      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock
+
     command: mvn failsafe:integration-test failsafe:verify
     profiles:
       - test

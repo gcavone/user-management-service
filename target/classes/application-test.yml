@@ -1,0 +1,17 @@
+# Test profile - used by integration tests with Testcontainers
+spring:
+  jpa:
+    show-sql: true
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Overridden in tests by @WithMockUser / mocked SecurityContext
+          jwk-set-uri: http://localhost:9999/realms/test/protocol/openid-connect/certs
+          issuer-uri: http://localhost:9999/realms/test
+
+logging:
+  level:
+    com.intesi.ums: DEBUG

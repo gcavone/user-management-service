@@ -51,7 +51,8 @@ Open a terminal and run the following command for the desired user. Each user co
 ```bash
 curl -s -X POST http://localhost:9090/realms/ums/protocol/openid-connect/token \
   -d "client_id=ums-client&client_secret=ums-client-secret&grant_type=password" \
-  -d "username=<username>&password=<password>"
+  -d "username=<username>&password=<password>" \
+  | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4
 ```
 
 Copy the `access_token` value from the response.
