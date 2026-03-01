@@ -1,0 +1,58 @@
+{
+  "realm": "ums",
+  "enabled": true,
+  "accessTokenLifespan": 1800,
+  "clients": [
+    {
+      "clientId": "ums-client",
+      "enabled": true,
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "secret": "ums-client-secret",
+      "redirectUris": ["http://localhost:8080/*"],
+      "webOrigins": ["*"]
+    }
+  ],
+  "roles": {
+    "realm": [
+      { "name": "OWNER",      "description": "Full access: create, read, update, disable, delete. Sees unmasked data." },
+      { "name": "OPERATOR",   "description": "Can create, read, update and disable users. Sees unmasked data." },
+      { "name": "MAINTAINER", "description": "Can create, read and update users. Sees unmasked data." },
+      { "name": "DEVELOPER",  "description": "Read-only access. Sees unmasked data." },
+      { "name": "REPORTER",   "description": "Read-only access. Email and CF are masked." }
+    ]
+  },
+  "users": [
+    {
+      "username": "owner-user",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "owner123", "temporary": false }],
+      "realmRoles": ["OWNER"]
+    },
+    {
+      "username": "operator-user",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "operator123", "temporary": false }],
+      "realmRoles": ["OPERATOR"]
+    },
+    {
+      "username": "maintainer-user",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "maintainer123", "temporary": false }],
+      "realmRoles": ["MAINTAINER"]
+    },
+    {
+      "username": "developer-user",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "developer123", "temporary": false }],
+      "realmRoles": ["DEVELOPER"]
+    },
+    {
+      "username": "reporter-user",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "reporter123", "temporary": false }],
+      "realmRoles": ["REPORTER"]
+    }
+  ]
+}

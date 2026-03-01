@@ -1,0 +1,138 @@
+services:
+
+  # ---- Application ----
+  app:
+    build: .
+    container_name: ums-app
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ums_db
+      DB_USER: ums_user
+      DB_PASSWORD: ums_password
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      # The app validates JWTs against Keycloak's internal Docker hostname.
+      # The issuer-uri must match what Keycloak puts in the JWT iss claim.
+      # Since tokens are requested from localhost:9090, we configure the app
+      # to fetch the JWKS from the internal hostname but accept localhost as issuer.
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/ums/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://localhost:9090/realms/ums
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - ums-network
+    restart: unless-stopped
+
+  # ---- PostgreSQL ----
+  postgres:
+    image: postgres:16-alpine
+    container_name: ums-postgres
+    environment:
+      POSTGRES_DB: ums_db
+      POSTGRES_USER: ums_user
+      POSTGRES_PASSWORD: ums_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ums_user -d ums_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ums-network
+
+  # ---- RabbitMQ ----
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: ums-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    networks:
+      - ums-network
+
+  # ---- Keycloak (IAM) ----
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: ums-keycloak
+    command: start-dev --import-realm --hostname-strict=false --hostname-strict-https=false
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME_URL: http://localhost:9090
+      KC_HOSTNAME_ADMIN_URL: http://localhost:9090
+    ports:
+      - "9090:8080"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    networks:
+      - ums-network
+    restart: unless-stopped
+
+  # ---- Unit test runner ----
+  # Runs unit tests only (UserServiceTest, CodiceFiscaleValidatorTest).
+  # No Docker socket required — works on any OS without additional configuration.
+  # Usage: docker-compose run --rm test
+  test:
+    image: maven:3.9.6-eclipse-temurin-21
+    container_name: ums-test
+    working_dir: /app
+    volumes:
+      - .:/app
+      - maven-cache:/root/.m2
+    command: mvn test
+    profiles:
+      - test
+
+  # ---- Integration test runner ----
+  # Runs integration tests (UserApiIntegrationTest) using Testcontainers.
+  # Requires the Docker socket to be mounted — see README for OS-specific instructions.
+  # Usage:
+  #   Linux:   docker-compose run --rm test-integration
+  #   macOS:   DOCKER_SOCK=$HOME/.docker/run/docker.sock docker-compose run --rm test-integration
+  test-integration:
+    image: maven:3.9.6-eclipse-temurin-21
+    container_name: ums-test-integration
+    working_dir: /app
+    environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+      TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /var/run/docker.sock
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+    volumes:
+      - .:/app
+      - maven-cache:/root/.m2
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+    command: mvn failsafe:integration-test failsafe:verify
+    profiles:
+      - test
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  maven-cache:
+
+networks:
+  ums-network:
+    driver: bridge

@@ -1,0 +1,98 @@
+spring:
+  application:
+    name: user-management-service
+
+  # ---- Database ----
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ums_db}
+    username: ${DB_USER:ums_user}
+    password: ${DB_PASSWORD:ums_password}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Flyway owns the schema; Hibernate only validates
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_batch_fetch_size: 20
+
+  # ---- Flyway ----
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  # ---- RabbitMQ ----
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+
+  # ---- Security / Keycloak ----
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Keycloak JWKS endpoint for token validation
+          jwk-set-uri: ${KEYCLOAK_JWK_URI:http://localhost:9090/realms/ums/protocol/openid-connect/certs}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:9090/realms/ums}
+
+# ---- Server ----
+server:
+  port: 8080
+  error:
+    include-message: never  # Prevent Spring's default error details from leaking
+
+# ---- Actuator ----
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+
+# ---- OpenAPI ----
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    oauth2-redirect-url: http://localhost:8080/swagger-ui/oauth2-redirect.html
+    display-request-duration: true
+
+# ---- App-specific config ----
+app:
+  messaging:
+    exchange: ums.events
+    routing-key:
+      user-created: user.created
+
+# ---- Logging ----
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
+  level:
+    root: INFO
+    com.intesi.ums: DEBUG
+    org.springframework.security: INFO
+    org.springframework.amqp: INFO
