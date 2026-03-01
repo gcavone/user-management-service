@@ -56,7 +56,7 @@ curl -s -X POST http://localhost:9090/realms/ums/protocol/openid-connect/token \
 
 Copy the `access_token` value from the response.
 
-> **Note:** Tokens expire after 5 minutes. If you receive a `401 Unauthorized`, repeat this step to obtain a fresh token.
+> **Note:** Tokens expire after 30 minutes. If you receive a `401 Unauthorized`, repeat this step to obtain a fresh token.
 
 ### Step 2 — Authorize in Swagger UI
 
@@ -239,31 +239,42 @@ docker-compose up -d postgres rabbitmq keycloak
 
 ### Tests
 
-The test suite is split into unit tests and integration tests. No local Java or Maven installation is required — everything runs inside Docker.
+No local Java or Maven installation required — everything runs inside Docker.
 
-**Unit tests** (no Docker socket required — works on any OS):
+**Unit tests** — work on any OS without additional configuration:
 ```bash
 docker-compose run --rm test
 ```
 
-**Integration tests** (require Docker socket access for Testcontainers):
-
-Linux:
+**Integration tests** — use Testcontainers to spin up dedicated PostgreSQL and RabbitMQ containers, completely isolated from the running stack:
 ```bash
 docker-compose run --rm test-integration
 ```
 
-macOS:
+> **Note for macOS users:** On some macOS configurations with Docker Desktop, Testcontainers may fail with "Could not find a valid Docker environment". If this happens, use the [CI/CD pipeline](#cicd) to run them — GitHub Actions runners use Linux where this works natively without any additional configuration.
+
+Maven dependencies are cached in a named Docker volume (`maven-cache`) so subsequent runs are significantly faster.
+
+---
+
+## CI/CD
+
+The project includes a GitHub Actions pipeline at `.github/workflows/ci.yml` that runs automatically on every push to `main` or `develop` and on every pull request to `main`.
+
+The pipeline has three jobs that run in sequence:
+
+**1. Unit Tests** — runs `mvn test` on every push. Covers service logic and CF validation.
+
+**2. Integration Tests** — runs `mvn verify` using Testcontainers. GitHub Actions runners (`ubuntu-latest`) have Docker pre-installed, so Testcontainers can spin up PostgreSQL and RabbitMQ containers automatically without any additional configuration. This is the recommended way to run integration tests — it avoids Docker-in-Docker limitations on macOS.
+
+**3. Docker Build** — builds the Docker image on every push to `main`, after both test jobs pass. The image is not pushed to a registry in this configuration (set `push: true` and add registry credentials to enable it).
+
+To trigger the pipeline, push to the repository:
 ```bash
-DOCKER_SOCK=$HOME/.docker/run/docker.sock docker-compose run --rm test-integration
+git push origin main
 ```
 
-Windows (PowerShell):
-```powershell
-$env:DOCKER_SOCK="//./pipe/docker_engine"; docker-compose run --rm test-integration
-```
-
-Integration tests use Testcontainers to spin up dedicated PostgreSQL and RabbitMQ containers — completely isolated from the running stack. Maven dependencies are cached in a named Docker volume (`maven-cache`) so subsequent runs are significantly faster.
+Results are visible at `https://github.com/<username>/<repo>/actions`.
 
 ---
 
