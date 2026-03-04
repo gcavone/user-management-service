@@ -21,8 +21,8 @@ All four services will start automatically:
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| Application API | http://localhost:8080 | — |
 | Swagger UI | http://localhost:8080/swagger-ui.html | — |
+| Health check | http://localhost:8080/actuator/health | — |
 | Keycloak (IAM) | http://localhost:9090 | admin / admin |
 | RabbitMQ Management | http://localhost:15672 | guest / guest |
 

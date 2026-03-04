@@ -91,6 +91,30 @@ services:
       - ums-network
     restart: unless-stopped
 
+  # ---- Keycloak configurator ----
+  # Runs once after Keycloak is ready to disable SSL requirement on master realm.
+  # Required for local development with Docker Desktop on macOS/Windows.
+  keycloak-config:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: ums-keycloak-config
+    depends_on:
+      - keycloak
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for Keycloak to be ready..." && \
+        sleep 30 && \
+        /opt/keycloak/bin/kcadm.sh config credentials \
+          --server http://keycloak:8080 \
+          --realm master \
+          --user admin \
+          --password admin && \
+        /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE && \
+        /opt/keycloak/bin/kcadm.sh update realms/ums -s sslRequired=NONE && \
+        echo "Keycloak SSL configured successfully"
+    networks:
+      - ums-network
+
   # ---- Unit test runner ----
   # Runs unit tests only (UserServiceTest, CodiceFiscaleValidatorTest).
   # No Docker socket required — works on any OS without additional configuration.
@@ -117,14 +141,13 @@ services:
     container_name: ums-test-integration
     working_dir: /app
     environment:
-      #DOCKER_HOST: unix:///var/run/docker.sock
+      DOCKER_HOST: unix:///var/run/docker.sock
       TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /var/run/docker.sock
       TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
     volumes:
       - .:/app
       - maven-cache:/root/.m2
-      - /var/run/docker.sock:/var/run/docker.sock
-
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
     command: mvn failsafe:integration-test failsafe:verify
     profiles:
       - test

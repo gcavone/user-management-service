@@ -24,7 +24,7 @@ public record CreateUserRequest(
     @Size(max = 255)
     String email,
 
-    @Schema(description = "Italian Codice Fiscale (16 chars, checksum validated)", example = "RSSMRA85M01H501Z")
+    @Schema(description = "Italian Codice Fiscale (16 chars, checksum validated)", example = "RSSMRA80A01H501U")
     @NotBlank(message = "codiceFiscale is required")
     @ValidCodiceFiscale
     String codiceFiscale,
