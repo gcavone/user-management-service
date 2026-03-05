@@ -56,7 +56,7 @@ class UserServiceTest {
             .id(userId)
             .username("mario.rossi")
             .email("mario.rossi@example.com")
-            .codiceFiscale("RSSMRA85M01H501Z")
+            .codiceFiscale("RSSMRA80A01H501U")
             .nome("Mario")
             .cognome("Rossi")
             .status(UserStatus.ACTIVE)
@@ -69,7 +69,7 @@ class UserServiceTest {
             .id(userId)
             .username("mario.rossi")
             .email("mario.rossi@example.com")
-            .codiceFiscale("RSSMRA85M01H501Z")
+            .codiceFiscale("RSSMRA80A01H501U")
             .nome("Mario")
             .cognome("Rossi")
             .status(UserStatus.ACTIVE)
@@ -122,7 +122,7 @@ class UserServiceTest {
         @DisplayName("creates user successfully and publishes event")
         void createsSuccessfully() {
             CreateUserRequest request = new CreateUserRequest(
-                "mario.rossi", "mario.rossi@example.com", "RSSMRA85M01H501Z",
+                "mario.rossi", "mario.rossi@example.com", "RSSMRA80A01H501U",
                 "Mario", "Rossi", Set.of(ApplicationRole.DEVELOPER)
             );
 
@@ -144,7 +144,7 @@ class UserServiceTest {
         @DisplayName("throws DuplicateResourceException when email already exists")
         void throwsOnDuplicateEmail() {
             CreateUserRequest request = new CreateUserRequest(
-                "mario.rossi", "mario.rossi@example.com", "RSSMRA85M01H501Z",
+                "mario.rossi", "mario.rossi@example.com", "RSSMRA80A01H501U",
                 "Mario", "Rossi", Set.of(ApplicationRole.DEVELOPER)
             );
 
@@ -162,12 +162,12 @@ class UserServiceTest {
         @DisplayName("throws DuplicateResourceException when CF already exists")
         void throwsOnDuplicateCF() {
             CreateUserRequest request = new CreateUserRequest(
-                "mario.rossi", "mario.rossi@example.com", "RSSMRA85M01H501Z",
+                "mario.rossi", "mario.rossi@example.com", "RSSMRA80A01H501U",
                 "Mario", "Rossi", Set.of(ApplicationRole.DEVELOPER)
             );
 
             when(userRepository.existsActiveByEmailIgnoreCase(anyString())).thenReturn(false);
-            when(userRepository.existsActiveByCodiceFiscale("RSSMRA85M01H501Z")).thenReturn(true);
+            when(userRepository.existsActiveByCodiceFiscale("RSSMRA80A01H501U")).thenReturn(true);
 
             assertThatThrownBy(() -> userService.createUser(request))
                 .isInstanceOf(DuplicateResourceException.class)
