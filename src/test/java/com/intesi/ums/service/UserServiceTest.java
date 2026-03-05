@@ -126,9 +126,9 @@ class UserServiceTest {
                 "Mario", "Rossi", Set.of(ApplicationRole.DEVELOPER)
             );
 
-            when(userRepository.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+            when(userRepository.existsActiveByEmailIgnoreCase(anyString())).thenReturn(false);
             when(userRepository.existsActiveByCodiceFiscale(anyString())).thenReturn(false);
-            when(userRepository.existsByUsernameIgnoreCase(anyString())).thenReturn(false);
+            when(userRepository.existsActiveByUsernameIgnoreCase(anyString())).thenReturn(false);
             when(userMapper.toEntity(request)).thenReturn(testUser);
             when(userRepository.save(testUser)).thenReturn(testUser);
             when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
@@ -148,7 +148,7 @@ class UserServiceTest {
                 "Mario", "Rossi", Set.of(ApplicationRole.DEVELOPER)
             );
 
-            when(userRepository.existsByEmailIgnoreCase("mario.rossi@example.com")).thenReturn(true);
+            when(userRepository.existsActiveByEmailIgnoreCase("mario.rossi@example.com")).thenReturn(true);
 
             assertThatThrownBy(() -> userService.createUser(request))
                 .isInstanceOf(DuplicateResourceException.class)
@@ -166,7 +166,7 @@ class UserServiceTest {
                 "Mario", "Rossi", Set.of(ApplicationRole.DEVELOPER)
             );
 
-            when(userRepository.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+            when(userRepository.existsActiveByEmailIgnoreCase(anyString())).thenReturn(false);
             when(userRepository.existsActiveByCodiceFiscale("RSSMRA85M01H501Z")).thenReturn(true);
 
             assertThatThrownBy(() -> userService.createUser(request))
