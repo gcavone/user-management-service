@@ -1,8 +1,0 @@
-com/intesi/ums/service/UserServiceTest$CreateUser.class
-com/intesi/ums/service/UserServiceTest$ListUsers.class
-com/intesi/ums/service/UserServiceTest.class
-com/intesi/ums/validation/CodiceFiscaleValidatorTest.class
-com/intesi/ums/integration/UserApiIntegrationTest.class
-com/intesi/ums/service/UserServiceTest$DisableUser.class
-com/intesi/ums/service/UserServiceTest$GetUserById.class
-com/intesi/ums/service/UserServiceTest$DeleteUser.class
