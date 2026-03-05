@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,6 +41,8 @@ public class UserController {
 
     private final UserService userService;
 
+    enum SortField { createdAt, updatedAt, username, email, cognome, nome }
+
     @GetMapping
     @PreAuthorize("hasAnyRole('OWNER', 'OPERATOR', 'MAINTAINER', 'DEVELOPER', 'REPORTER')")
     @Operation(
@@ -63,7 +66,7 @@ public class UserController {
         @Parameter(description = "Free-text search on username, email, nome, cognome") @RequestParam(required = false) String search,
         @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
         @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size,
-        @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt") String sortBy,
+        @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt") SortField sortBy,
         @Parameter(description = "Sort direction") @RequestParam(defaultValue = "DESC") Sort.Direction direction,
         Authentication authentication
     ) {
@@ -72,7 +75,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        Pageable pageable = PageRequest.of(page, Math.min(size, 100), Sort.by(direction, sortBy));
+        Pageable pageable = PageRequest.of(page, Math.min(size, 100), Sort.by(direction, sortBy.name()));
         boolean mask = shouldMask(authentication);
         return ResponseEntity.ok(userService.listUsers(status, search, pageable, mask));
     }
