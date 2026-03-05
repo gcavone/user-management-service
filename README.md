@@ -46,6 +46,12 @@ Two scripts are provided depending on your OS. Both print the token directly —
 ```
 
 **Windows PowerShell:**
+
+> **Note for Windows users:** PowerShell blocks script execution by default. Run this command once before using the script:
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
+
 ```powershell
 .\get-token.ps1 <username> <password>
 ```
