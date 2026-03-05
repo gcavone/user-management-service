@@ -149,7 +149,7 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsActiveByEmailIgnoreCase(request.email())) {
             throw new DuplicateResourceException("email", request.email());
         }
-        if (userRepository.existsActiveByCodiceFiscale(request.codiceFiscale())) {
+        if (userRepository.existsByCodiceFiscale(request.codiceFiscale())) {
             throw new DuplicateResourceException("codiceFiscale", request.codiceFiscale());
         }
         if (userRepository.existsActiveByUsernameIgnoreCase(request.username())) {

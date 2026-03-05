@@ -33,9 +33,8 @@ CREATE UNIQUE INDEX uq_users_username_active
 
 -- Codice Fiscale uniqueness among non-deleted users only
 -- This allows reusing a CF if the original holder is soft-deleted (edge case)
-CREATE UNIQUE INDEX uq_users_cf_active
-    ON users (UPPER(codice_fiscale))
-    WHERE status != 'DELETED';
+CREATE UNIQUE INDEX uq_users_cf
+    ON users (UPPER(codice_fiscale));
 
 -- Performance indexes
 CREATE INDEX idx_users_status      ON users (status);

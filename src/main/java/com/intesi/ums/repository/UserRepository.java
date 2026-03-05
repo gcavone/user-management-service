@@ -46,11 +46,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsActiveByEmailIgnoreCase(@Param("email") String email);
 
     /**
-     * Check CF uniqueness only among non-deleted users.
-     * Allows reassigning a CF if the original holder was soft-deleted.
+     * Check CF uniqueness among ALL users including deleted ones.
+     * In a regulated QTSP context, a CF identifies a natural person by law —
+     * reusing it even after soft-delete could create ambiguity in compliance audits.
      */
-    @Query("SELECT COUNT(u) > 0 FROM User u WHERE UPPER(u.codiceFiscale) = UPPER(:cf) AND u.status != 'DELETED'")
-    boolean existsActiveByCodiceFiscale(@Param("cf") String codiceFiscale);
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE UPPER(u.codiceFiscale) = UPPER(:cf)")
+    boolean existsByCodiceFiscale(@Param("cf") String codiceFiscale);
 
     @Query("SELECT COUNT(u) > 0 FROM User u WHERE LOWER(u.username) = LOWER(:username) AND u.status != 'DELETED'")
     boolean existsActiveByUsernameIgnoreCase(@Param("username") String username);
