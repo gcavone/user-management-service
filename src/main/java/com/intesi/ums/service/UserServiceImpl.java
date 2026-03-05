@@ -84,7 +84,7 @@ public class UserServiceImpl implements UserService {
         }
 
         if (request.username() != null && !request.username().equalsIgnoreCase(user.getUsername())) {
-            if (userRepository.existsByUsernameIgnoreCase(request.username())) {
+            if (userRepository.existsActiveByUsernameIgnoreCase(request.username())) {
                 throw new DuplicateResourceException("username", request.username());
             }
         }
@@ -146,13 +146,13 @@ public class UserServiceImpl implements UserService {
     }
 
     private void validateUniqueConstraints(CreateUserRequest request) {
-        if (userRepository.existsByEmailIgnoreCase(request.email())) {
+        if (userRepository.existsActiveByEmailIgnoreCase(request.email())) {
             throw new DuplicateResourceException("email", request.email());
         }
         if (userRepository.existsActiveByCodiceFiscale(request.codiceFiscale())) {
             throw new DuplicateResourceException("codiceFiscale", request.codiceFiscale());
         }
-        if (userRepository.existsByUsernameIgnoreCase(request.username())) {
+        if (userRepository.existsActiveByUsernameIgnoreCase(request.username())) {
             throw new DuplicateResourceException("username", request.username());
         }
     }

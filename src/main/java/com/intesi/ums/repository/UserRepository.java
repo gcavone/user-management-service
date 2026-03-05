@@ -42,7 +42,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u FROM User u WHERE u.id = :id AND u.status != 'DELETED'")
     Optional<User> findActiveById(@Param("id") UUID id);
 
-    boolean existsByEmailIgnoreCase(String email);
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE LOWER(u.email) = LOWER(:email) AND u.status != 'DELETED'")
+    boolean existsActiveByEmailIgnoreCase(@Param("email") String email);
 
     /**
      * Check CF uniqueness only among non-deleted users.
@@ -51,5 +52,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT COUNT(u) > 0 FROM User u WHERE UPPER(u.codiceFiscale) = UPPER(:cf) AND u.status != 'DELETED'")
     boolean existsActiveByCodiceFiscale(@Param("cf") String codiceFiscale);
 
-    boolean existsByUsernameIgnoreCase(String username);
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE LOWER(u.username) = LOWER(:username) AND u.status != 'DELETED'")
+    boolean existsActiveByUsernameIgnoreCase(@Param("username") String username);
 }
