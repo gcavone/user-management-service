@@ -99,7 +99,7 @@ Full interactive documentation: **http://localhost:8080/swagger-ui.html**
 
 | Role | Endpoints | Sensitive data (email, CF) |
 |------|-----------|---------------------------|
-| OWNER | Full access: create, read, update, disable, delete | Visible |
+| OWNER | Full access: create, read, update, disable, delete. Can filter users by `status=DELETED` | Visible |
 | OPERATOR | Create, read, update, disable | Visible |
 | MAINTAINER | Create, read, update | Visible |
 | DEVELOPER | Read-only | Visible |
@@ -200,7 +200,7 @@ Users are never physically deleted. `DELETE /users/{id}` sets `status = 'DELETED
 - Foreign key references remain valid
 - Reversible by ops team directly in DB if needed
 
-All queries use `WHERE status != 'DELETED'` to exclude them transparently.
+Deleted users are excluded from all queries by default. Only OWNER can retrieve them explicitly via `GET /api/v1/users?status=DELETED`.
 
 ### Audit Trail: DB Trigger + Spring Data Auditing
 
