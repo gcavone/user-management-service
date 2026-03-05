@@ -1,6 +1,7 @@
 package com.intesi.ums.controller;
 
 import com.intesi.ums.config.SecurityConfig;
+import com.intesi.ums.exception.ForbiddenException;
 import com.intesi.ums.domain.UserStatus;
 import com.intesi.ums.dto.CreateUserRequest;
 import com.intesi.ums.dto.ErrorResponse;
@@ -72,7 +73,7 @@ public class UserController {
     ) {
         // Only OWNER can see deleted users
         if (status == UserStatus.DELETED && !hasRole(authentication, "ROLE_OWNER")) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            throw new ForbiddenException("Insufficient permissions");
         }
 
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), Sort.by(direction, sortBy.name()));
