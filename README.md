@@ -38,7 +38,17 @@ All endpoints require a valid JWT token issued by Keycloak. Follow these steps:
 
 ### Step 1 — Obtain a token from Keycloak
 
-Open a terminal and run the following command for the desired user. Each user corresponds to a different role, allowing you to test different permission levels.
+Two scripts are provided depending on your OS. Both print the token directly — copy it and paste it in Swagger UI.
+
+**macOS / Linux / Git Bash (Windows):**
+```bash
+./get-token.sh <username> <password>
+```
+
+**Windows PowerShell:**
+```powershell
+.\get-token.ps1 <username> <password>
+```
 
 | User | Password | Role |
 |------|----------|------|
@@ -48,14 +58,10 @@ Open a terminal and run the following command for the desired user. Each user co
 | developer-user | developer123 | DEVELOPER |
 | reporter-user | reporter123 | REPORTER |
 
+Example:
 ```bash
-curl -s -X POST http://localhost:9090/realms/ums/protocol/openid-connect/token \
-  -d "client_id=ums-client&client_secret=ums-client-secret&grant_type=password" \
-  -d "username=<username>&password=<password>" \
-  | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4
+./get-token.sh owner-user owner123
 ```
-
-Copy the `access_token` value from the response.
 
 > **Note:** Tokens expire after 30 minutes. If you receive a `401 Unauthorized`, repeat this step to obtain a fresh token.
 

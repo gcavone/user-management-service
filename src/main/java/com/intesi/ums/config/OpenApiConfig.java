@@ -34,8 +34,7 @@ public class OpenApiConfig {
                 .version("v1.0.0")
                 .contact(new Contact().name("Giuseppe Cavone").email("giuseppe@cavone.net")))
             .servers(List.of(
-                new Server().url("http://localhost:8080").description("Local development"),
-                new Server().url("https://ums.intesigroup.com").description("Production")
+                new Server().url("http://localhost:8080").description("Local development")
             ))
             .components(new Components()
                 .addSecuritySchemes("bearerAuth", new SecurityScheme()
