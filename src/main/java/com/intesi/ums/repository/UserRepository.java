@@ -16,12 +16,13 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
 
     /**
-     * Find all non-deleted users with optional filtering.
-     * Using JPQL instead of derived methods for readability and performance control.
+     * Find users with optional filtering.
+     * When status=DELETED is explicitly passed, deleted users are included.
+     * When no status filter is provided, deleted users are excluded by default.
      */
     @Query("""
         SELECT u FROM User u
-        WHERE u.status != 'DELETED'
+        WHERE (:status IS NOT NULL OR u.status != 'DELETED')
         AND (:status IS NULL OR u.status = :status)
         AND (:search IS NULL
              OR LOWER(u.username) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))

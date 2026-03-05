@@ -48,6 +48,7 @@ public class UserController {
             Returns a paginated list of users.
             REPORTER role receives masked email and CF.
             All other roles receive full data.
+            Filtering by status=DELETED is restricted to OWNER role only.
             """,
         responses = {
             @ApiResponse(responseCode = "200", description = "Successful"),
@@ -66,6 +67,11 @@ public class UserController {
         @Parameter(description = "Sort direction") @RequestParam(defaultValue = "DESC") Sort.Direction direction,
         Authentication authentication
     ) {
+        // Only OWNER can see deleted users
+        if (status == UserStatus.DELETED && !hasRole(authentication, "ROLE_OWNER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), Sort.by(direction, sortBy));
         boolean mask = shouldMask(authentication);
         return ResponseEntity.ok(userService.listUsers(status, search, pageable, mask));
@@ -138,5 +144,15 @@ public class UserController {
         return auth.getAuthorities().stream()
             .map(GrantedAuthority::getAuthority)
             .noneMatch(SecurityConfig.UNMASKED_ROLES::contains);
+    }
+
+    /**
+     * Returns true if the caller has the specified role.
+     */
+    private boolean hasRole(Authentication auth, String role) {
+        if (auth == null) return false;
+        return auth.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .anyMatch(role::equals);
     }
 }
