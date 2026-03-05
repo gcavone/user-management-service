@@ -1,2 +1,21 @@
+# macOS
 .DS_Store
 **/.DS_Store
+
+# Maven build output
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.classpath
+*.project
+.settings/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
