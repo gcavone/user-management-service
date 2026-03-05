@@ -157,7 +157,7 @@ Full interactive documentation: **http://localhost:8080/swagger-ui.html**
 
 The domain has clear relational structure (users, roles) with strict constraints (unique email, unique CF, referential integrity on user_roles). PostgreSQL gives:
 - **ACID transactions** — critical when checking uniqueness and inserting atomically
-- **Partial unique indexes** — `uq_users_cf_active` and `uq_users_username_active` enforce uniqueness only among non-deleted users, avoiding conflicts with soft-deleted records
+- **Partial unique indexes** — `uq_users_email_active`, `uq_users_cf_active` and `uq_users_username_active` enforce uniqueness only among non-deleted users, avoiding conflicts with soft-deleted records
 - **UUID PK** — distributed-system ready; no coordination required for ID generation
 - Native `gen_random_uuid()` for zero-dependency UUID generation
 

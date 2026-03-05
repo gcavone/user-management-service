@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Unique constraints
 -- Email is globally unique (even across deleted users, since it is used as identity)
-ALTER TABLE users ADD CONSTRAINT uq_users_email UNIQUE (email);
+CREATE UNIQUE INDEX uq_users_email_active
+    ON users (LOWER(email))
+    WHERE status != 'DELETED';
 
 -- Username uniqueness among non-deleted users only
 CREATE UNIQUE INDEX uq_users_username_active
