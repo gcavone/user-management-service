@@ -26,7 +26,7 @@ All four services will start automatically:
 | Keycloak (IAM) | http://localhost:9090 | admin / admin |
 | RabbitMQ Management | http://localhost:15672 | guest / guest |
 
-> **Note:** Keycloak takes 2-3 minutes to fully start on first launch. Wait until `http://localhost:8080/actuator/health` returns `{"status":"UP"}` before testing the APIs.
+> **Database:** The database is pre-populated with 100 sample users covering all statuses (ACTIVE, DISABLED, DELETED) and roles, to allow immediate testing of all features. To start with an empty database instead, remove or rename `src/main/resources/db/migration/V2__seed_data.sql` before running `docker-compose up`.
 
 ---
 
@@ -157,7 +157,7 @@ Full interactive documentation: **http://localhost:8080/swagger-ui.html**
 
 The domain has clear relational structure (users, roles) with strict constraints (unique email, unique CF, referential integrity on user_roles). PostgreSQL gives:
 - **ACID transactions** — critical when checking uniqueness and inserting atomically
-- **Partial unique indexes** — `uq_users_email_active` and `uq_users_username_active` enforce uniqueness only among non-deleted users, allowing email and username reuse after soft-delete. The CF (`uq_users_cf`) is unique across all users including deleted ones — in a QTSP/eIDAS regulated context a CF identifies a natural person by law and must remain unique even historically
+- **Partial unique indexes** — `uq_users_email_active` and `uq_users_username_active` enforce uniqueness only among non-deleted users, allowing email and username reuse after soft-delete. The CF (`uq_users_cf`) is unique across all users including deleted ones — in a regulated context a CF identifies a natural person by law and must remain unique even historically
 - **UUID PK** — distributed-system ready; no coordination required for ID generation
 - Native `gen_random_uuid()` for zero-dependency UUID generation
 
@@ -224,7 +224,7 @@ In case of conflict, the trigger always wins (it fires `BEFORE UPDATE` and overw
 
 `created_at` does not need a trigger — it is written once at INSERT time and never changes. The `DEFAULT NOW()` on the column already covers direct INSERT scenarios.
 
-This design is consistent with operating in a QTSP/eIDAS-regulated context where audit trail integrity must be guaranteed at the infrastructure level, not just at the application level.
+This design is consistent with operating in a regulated context where audit trail integrity must be guaranteed at the infrastructure level, not just at the application level.
 
 ### Correlation ID
 
