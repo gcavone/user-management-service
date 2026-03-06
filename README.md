@@ -193,6 +193,10 @@ Flyway owns all DDL. Hibernate is configured with `ddl-auto: validate` — it on
 - Schema changes are tracked in VCS
 - Safe for blue/green deployments
 
+The database is pre-populated with 100 sample users covering all statuses (ACTIVE, DISABLED, DELETED) and roles, to allow immediate testing of all API features including pagination, filtering and role-based access. This is done via `V2__seed_data.sql` which Flyway applies automatically on first startup.
+
+> **Note:** To start with an empty database, remove or rename `src/main/resources/db/migration/V2__seed_data.sql` before running `docker-compose up`.
+
 ### Soft Delete
 
 Users are never physically deleted. `DELETE /users/{id}` sets `status = 'DELETED'`. Reasons:
