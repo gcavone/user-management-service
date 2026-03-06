@@ -14,7 +14,7 @@ import java.util.UUID;
  * User response DTO.
  *
  * Sensitive fields (email, codiceFiscale) are returned as-is for users with
- * sufficient privileges (ADMIN / MANAGER roles). VIEWER-role callers receive
+ * sufficient privileges (OWNER, OPERATOR, MAINTAINER, DEVELOPER roles). REPORTER-role callers receive
  * masked values via the UserMapper masking variant.
  */
 @Schema(description = "User data returned by the API")

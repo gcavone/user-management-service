@@ -47,7 +47,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     /**
      * Check CF uniqueness among ALL users including deleted ones.
-     * In a regulated QTSP context, a CF identifies a natural person by law —
+     * In a regulated context, a CF identifies a natural person by law —
      * reusing it even after soft-delete could create ambiguity in compliance audits.
      */
     @Query("SELECT COUNT(u) > 0 FROM User u WHERE UPPER(u.codiceFiscale) = UPPER(:cf)")

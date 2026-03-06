@@ -9,8 +9,8 @@ import org.mapstruct.*;
  * MapStruct mapper for User <-> DTO conversions.
  *
  * Two mapping methods are provided:
- * - toResponse()        : full data (for ADMIN / MANAGER roles)
- * - toMaskedResponse()  : sensitive fields masked (for VIEWER role)
+ * - toResponse()        : full data (for OWNER, OPERATOR, MAINTAINER, DEVELOPER roles)
+ * - toMaskedResponse()  : sensitive fields masked (for REPORTER role)
  *
  * Using componentModel = "spring" so the mapper is injected as a Spring bean.
  */
