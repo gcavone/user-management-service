@@ -105,6 +105,8 @@ Full interactive documentation: **http://localhost:8080/swagger-ui.html**
 | REPORTER | Read-only | Masked | — |
 
 > **Note:** When creating or updating a user, a caller can only assign roles with equal or lower privilege than their own. Attempting to assign a higher-privilege role returns `403 PRIVILEGE_ESCALATION`.
+>
+> All other authorization failures (acting on a user with higher privilege, attempting a soft-delete without OWNER role) return a generic `403 FORBIDDEN` with message `"Insufficient permissions"` — no details are leaked about the specific reason.
 
 ### Query Parameters for List
 
