@@ -62,8 +62,8 @@ public class UserServiceImpl implements UserService {
     public UserResponse createUser(CreateUserRequest request) {
         log.info("Creating user with username='{}', email='{}'", request.username(), request.email());
 
-        validateUniqueConstraints(request);
         validateRoleAssignment(request.roles());
+        validateUniqueConstraints(request);
 
         User user = userMapper.toEntity(request);
         // Normalise CF to uppercase for consistent storage and comparison
@@ -90,6 +90,11 @@ public class UserServiceImpl implements UserService {
         ApplicationRole callerRole = resolveCallerHighestRole();
         validateTargetHierarchy(user, callerRole);
 
+        // Validate role assignment privilege escalation before any mutation
+        if (request.roles() != null && !request.roles().isEmpty()) {
+            validateRoleAssignment(request.roles());
+        }
+
         if (user.getStatus() == UserStatus.DISABLED && request.username() != null) {
             log.warn("Updating username on a DISABLED user id={}", id);
         }
@@ -102,9 +107,8 @@ public class UserServiceImpl implements UserService {
 
         userMapper.updateEntityFromRequest(user, request);
 
-        // Explicitly replace roles if provided
+        // Apply roles (already validated above)
         if (request.roles() != null && !request.roles().isEmpty()) {
-            validateRoleAssignment(request.roles());
             user.getRoles().clear();
             user.getRoles().addAll(request.roles());
         }
@@ -127,12 +131,8 @@ public class UserServiceImpl implements UserService {
             throw new IllegalStateTransitionException(target.getStatus(), request.status().name());
         }
 
-        // No-op: target already has the requested status
-        if (target.getStatus() == request.status()) {
-            log.debug("User id={} already has status={}, no-op", id, request.status());
-            return userMapper.toResponse(target);
-        }
-
+        // Authorization checks come before no-op — a caller must have permission
+        // regardless of whether the operation would actually change anything
         ApplicationRole callerRole = resolveCallerHighestRole();
 
         // Only OWNER can soft-delete
@@ -142,6 +142,12 @@ public class UserServiceImpl implements UserService {
 
         // Caller cannot act on a user whose highest role has greater privilege than their own
         validateTargetHierarchy(target, callerRole);
+
+        // No-op: target already has the requested status (checked after auth)
+        if (target.getStatus() == request.status()) {
+            log.debug("User id={} already has status={}, no-op", id, request.status());
+            return userMapper.toResponse(target);
+        }
 
         switch (request.status()) {
             case ACTIVE   -> target.setStatus(UserStatus.ACTIVE);

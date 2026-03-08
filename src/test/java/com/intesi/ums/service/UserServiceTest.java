@@ -249,6 +249,24 @@ class UserServiceTest {
 
             verify(userRepository, never()).save(any());
         }
+
+        @Test
+        @DisplayName("MAINTAINER cannot assign OPERATOR role — throws PrivilegeEscalationException before any mutation")
+        void maintainerCannotAssignOperatorRole() {
+            mockSecurityContext("MAINTAINER");
+            // target is a DEVELOPER — hierarchy check passes
+            // but the requested role OPERATOR is above MAINTAINER → privilege escalation
+            UpdateUserRequest request = new UpdateUserRequest(null, null, null,
+                Set.of(ApplicationRole.OPERATOR));
+            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+
+            assertThatThrownBy(() -> userService.updateUser(userId, request))
+                .isInstanceOf(com.intesi.ums.exception.PrivilegeEscalationException.class);
+
+            // Mapper must never be called — auth failed before mutation
+            verify(userMapper, never()).updateEntityFromRequest(any(), any());
+            verify(userRepository, never()).save(any());
+        }
     }
 
     @Nested
@@ -321,7 +339,7 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("is idempotent — no-op if target already has the requested status")
+        @DisplayName("is idempotent for OWNER — no-op if target already has the requested status")
         void idempotentOnSameStatus() {
             mockSecurityContext("OWNER");
             testUser.setStatus(UserStatus.DISABLED);
@@ -331,6 +349,21 @@ class UserServiceTest {
             userService.updateUserStatus(userId, new UpdateStatusRequest(UserStatus.DISABLED));
 
             verify(userRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("OPERATOR on OWNER no-op still throws ForbiddenException — auth before no-op")
+        void operatorOnOwnerNoOpStillForbidden() {
+            mockSecurityContext("OPERATOR");
+            testUser.getRoles().clear();
+            testUser.getRoles().add(ApplicationRole.OWNER);
+            // target is already ACTIVE — would be a no-op, but auth must be checked first
+            testUser.setStatus(UserStatus.ACTIVE);
+            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+
+            assertThatThrownBy(() ->
+                userService.updateUserStatus(userId, new UpdateStatusRequest(UserStatus.ACTIVE))
+            ).isInstanceOf(com.intesi.ums.exception.ForbiddenException.class);
         }
 
         @Test
