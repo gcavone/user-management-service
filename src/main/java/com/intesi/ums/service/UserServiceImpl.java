@@ -137,7 +137,7 @@ public class UserServiceImpl implements UserService {
 
         // Only OWNER can soft-delete
         if (request.status() == UserStatus.DELETED && callerRole != ApplicationRole.OWNER) {
-            throw new ForbiddenException("Only OWNER can delete users");
+            throw new ForbiddenException("Insufficient permissions");
         }
 
         // Caller cannot act on a user whose highest role has greater privilege than their own
@@ -193,9 +193,7 @@ public class UserServiceImpl implements UserService {
             .min(Comparator.comparingInt(ApplicationRole::ordinal))
             .ifPresent(targetHighestRole -> {
                 if (targetHighestRole.ordinal() < callerRole.ordinal()) {
-                    throw new ForbiddenException(
-                        "Cannot perform this action on a user with higher privilege"
-                    );
+                    throw new ForbiddenException("Insufficient permissions");
                 }
             });
     }
