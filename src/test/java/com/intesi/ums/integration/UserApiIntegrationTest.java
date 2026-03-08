@@ -201,14 +201,16 @@ class UserApiIntegrationTest {
             .andExpect(jsonPath("$.roles", hasItem("MAINTAINER")));
     }
 
-    // ---- DISABLE / DELETE ----
+    // ---- STATUS UPDATE ----
 
     @Test
     @Order(9)
     @WithMockUser(roles = "OWNER")
-    @DisplayName("PATCH /users/{id}/disable - disables user")
+    @DisplayName("PATCH /users/{id}/status - OWNER can disable user")
     void disableUser() throws Exception {
-        mockMvc.perform(patch("/api/v1/users/" + createdUserId + "/disable"))
+        mockMvc.perform(patch("/api/v1/users/" + createdUserId + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"DISABLED\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("DISABLED"));
     }
@@ -216,10 +218,25 @@ class UserApiIntegrationTest {
     @Test
     @Order(10)
     @WithMockUser(roles = "OWNER")
-    @DisplayName("DELETE /users/{id} - soft-deletes user, returns 204")
+    @DisplayName("PATCH /users/{id}/status - OWNER can re-enable a disabled user")
+    void reEnableUser() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/" + createdUserId + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"ACTIVE\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("ACTIVE"));
+    }
+
+    @Test
+    @Order(11)
+    @WithMockUser(roles = "OWNER")
+    @DisplayName("PATCH /users/{id}/status - OWNER can soft-delete user")
     void deleteUser() throws Exception {
-        mockMvc.perform(delete("/api/v1/users/" + createdUserId))
-            .andExpect(status().isNoContent());
+        mockMvc.perform(patch("/api/v1/users/" + createdUserId + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"DELETED\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("DELETED"));
 
         // User should no longer be findable
         mockMvc.perform(get("/api/v1/users/" + createdUserId))
@@ -229,7 +246,7 @@ class UserApiIntegrationTest {
     // ---- SECURITY ----
 
     @Test
-    @Order(11)
+    @Order(12)
     @WithMockUser(roles = "REPORTER")
     @DisplayName("POST /users - VIEWER cannot create users, returns 403")
     void createUser_viewerForbidden() throws Exception {
@@ -245,7 +262,7 @@ class UserApiIntegrationTest {
     }
 
     @Test
-    @Order(12)
+    @Order(13)
     @DisplayName("GET /users - unauthenticated request returns 401")
     void listUsers_unauthenticated() throws Exception {
         mockMvc.perform(get("/api/v1/users"))

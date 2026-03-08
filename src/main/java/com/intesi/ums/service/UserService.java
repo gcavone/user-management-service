@@ -3,6 +3,7 @@ package com.intesi.ums.service;
 import com.intesi.ums.domain.UserStatus;
 import com.intesi.ums.dto.CreateUserRequest;
 import com.intesi.ums.dto.PagedResponse;
+import com.intesi.ums.dto.UpdateStatusRequest;
 import com.intesi.ums.dto.UpdateUserRequest;
 import com.intesi.ums.dto.UserResponse;
 import org.springframework.data.domain.Pageable;
@@ -38,12 +39,12 @@ public interface UserService {
     UserResponse updateUser(UUID id, UpdateUserRequest request);
 
     /**
-     * Disables the user (status -> DISABLED). Idempotent.
+     * Updates the status of a user (ACTIVE / DISABLED / DELETED).
+     *
+     * Business rules enforced here (not at the controller level):
+     * - Transitions from DELETED are always illegal — soft delete is irreversible via API.
+     * - Transitioning to DELETED requires OWNER role.
+     * - Caller cannot act on a user whose highest role has greater privilege than their own.
      */
-    UserResponse disableUser(UUID id);
-
-    /**
-     * Soft-deletes the user (status -> DELETED). Irreversible via API.
-     */
-    void deleteUser(UUID id);
+    UserResponse updateUserStatus(UUID id, UpdateStatusRequest request);
 }

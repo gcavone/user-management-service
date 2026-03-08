@@ -3,10 +3,12 @@ package com.intesi.ums.service;
 import com.intesi.ums.domain.User;
 import com.intesi.ums.domain.ApplicationRole;
 import com.intesi.ums.domain.UserStatus;
+import com.intesi.ums.exception.ForbiddenException;
 import com.intesi.ums.exception.PrivilegeEscalationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.intesi.ums.dto.CreateUserRequest;
 import com.intesi.ums.dto.PagedResponse;
+import com.intesi.ums.dto.UpdateStatusRequest;
 import com.intesi.ums.dto.UpdateUserRequest;
 import com.intesi.ums.dto.UserResponse;
 import com.intesi.ums.exception.DuplicateResourceException;
@@ -23,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.UUID;
 
 @Service
@@ -111,36 +114,42 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse disableUser(UUID id) {
-        log.info("Disabling user id={}", id);
-        User user = findActiveOrThrow(id);
+    public UserResponse updateUserStatus(UUID id, UpdateStatusRequest request) {
+        log.info("Status update requested for user id={} → {}", id, request.status());
+        User target = findActiveOrThrow(id);
 
-        if (user.getStatus() == UserStatus.DISABLED) {
-            log.debug("User id={} is already DISABLED, no-op", id);
-            return userMapper.toResponse(user);
+        // Transitions from DELETED are always illegal — soft delete is irreversible via API
+        if (target.getStatus() == UserStatus.DELETED) {
+            throw new IllegalStateTransitionException(target.getStatus(), request.status().name());
         }
 
-        user.disable();
-        User saved = userRepository.save(user);
+        // No-op: target already has the requested status
+        if (target.getStatus() == request.status()) {
+            log.debug("User id={} already has status={}, no-op", id, request.status());
+            return userMapper.toResponse(target);
+        }
+
+        ApplicationRole callerRole = resolveCallerHighestRole();
+
+        // Only OWNER can soft-delete
+        if (request.status() == UserStatus.DELETED && callerRole != ApplicationRole.OWNER) {
+            throw new ForbiddenException("Only OWNER can delete users");
+        }
+
+        // Caller cannot act on a user whose highest role has greater privilege than their own
+        validateTargetHierarchy(target, callerRole);
+
+        switch (request.status()) {
+            case ACTIVE   -> target.setStatus(UserStatus.ACTIVE);
+            case DISABLED -> target.disable();
+            case DELETED  -> target.delete();
+        }
+
+        User saved = userRepository.save(target);
         userRepository.flush();
         entityManager.refresh(saved);
-        log.info("User id={} disabled", id);
+        log.info("User id={} status updated to {}", id, saved.getStatus());
         return userMapper.toResponse(saved);
-    }
-
-    @Override
-    @Transactional
-    public void deleteUser(UUID id) {
-        log.info("Soft-deleting user id={}", id);
-        User user = findActiveOrThrow(id);
-
-        if (user.getStatus() == UserStatus.DELETED) {
-            throw new IllegalStateTransitionException(user.getStatus(), "delete");
-        }
-
-        user.delete();
-        userRepository.save(user);
-        log.info("User id={} soft-deleted", id);
     }
 
     // ---- private helpers ----
@@ -151,18 +160,42 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * Ensures the caller cannot assign roles with higher privilege than their own.
-     * Derives the caller's highest role from the Spring Security context.
+     * Resolves the caller's highest-privilege role from the Spring Security context.
+     * "Highest privilege" means the role with the lowest ordinal value.
      */
-    private void validateRoleAssignment(java.util.Set<ApplicationRole> rolesToAssign) {
-        ApplicationRole callerRole = SecurityContextHolder.getContext()
+    private ApplicationRole resolveCallerHighestRole() {
+        return SecurityContextHolder.getContext()
             .getAuthentication()
             .getAuthorities()
             .stream()
             .map(a -> a.getAuthority().replace("ROLE_", ""))
             .map(ApplicationRole::valueOf)
-            .min(java.util.Comparator.comparingInt(ApplicationRole::ordinal))
+            .min(Comparator.comparingInt(ApplicationRole::ordinal))
             .orElseThrow();
+    }
+
+    /**
+     * Prevents a caller from acting on a user whose highest role has greater privilege.
+     * Example: OPERATOR (ordinal 1) cannot act on a user whose highest role is OWNER (ordinal 0).
+     */
+    private void validateTargetHierarchy(User target, ApplicationRole callerRole) {
+        target.getRoles().stream()
+            .min(Comparator.comparingInt(ApplicationRole::ordinal))
+            .ifPresent(targetHighestRole -> {
+                if (targetHighestRole.ordinal() < callerRole.ordinal()) {
+                    throw new ForbiddenException(
+                        "Cannot perform this action on a user with higher privilege"
+                    );
+                }
+            });
+    }
+
+    /**
+     * Ensures the caller cannot assign roles with higher privilege than their own.
+     * Delegates to resolveCallerHighestRole for consistency.
+     */
+    private void validateRoleAssignment(java.util.Set<ApplicationRole> rolesToAssign) {
+        ApplicationRole callerRole = resolveCallerHighestRole();
 
         rolesToAssign.forEach(role -> {
             if (!role.isAssignableBy(callerRole)) {

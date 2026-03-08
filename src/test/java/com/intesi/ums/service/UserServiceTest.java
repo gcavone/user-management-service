@@ -5,6 +5,7 @@ import com.intesi.ums.domain.User;
 import com.intesi.ums.domain.UserStatus;
 import com.intesi.ums.dto.CreateUserRequest;
 import com.intesi.ums.dto.PagedResponse;
+import com.intesi.ums.dto.UpdateStatusRequest;
 import com.intesi.ums.dto.UpdateUserRequest;
 import com.intesi.ums.dto.UserResponse;
 import com.intesi.ums.exception.DuplicateResourceException;
@@ -201,48 +202,109 @@ class UserServiceTest {
     }
 
     @Nested
-    @DisplayName("disableUser")
-    class DisableUser {
+    @DisplayName("updateUserStatus")
+    class UpdateUserStatus {
 
         @Test
-        @DisplayName("disables an active user")
-        void disablesActiveUser() {
+        @DisplayName("OWNER can disable an active user")
+        void ownerDisablesActiveUser() {
+            mockSecurityContext("OWNER");
             when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
             when(userRepository.save(testUser)).thenReturn(testUser);
             when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
 
-            userService.disableUser(userId);
+            userService.updateUserStatus(userId, new UpdateStatusRequest(UserStatus.DISABLED));
 
             assertThat(testUser.getStatus()).isEqualTo(UserStatus.DISABLED);
             verify(userRepository).save(testUser);
         }
 
         @Test
-        @DisplayName("is idempotent — no-op if already DISABLED")
-        void idempotentOnAlreadyDisabled() {
+        @DisplayName("OWNER can re-enable a disabled user")
+        void ownerReEnablesDisabledUser() {
+            mockSecurityContext("OWNER");
+            testUser.setStatus(UserStatus.DISABLED);
+            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+            when(userRepository.save(testUser)).thenReturn(testUser);
+            when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
+
+            userService.updateUserStatus(userId, new UpdateStatusRequest(UserStatus.ACTIVE));
+
+            assertThat(testUser.getStatus()).isEqualTo(UserStatus.ACTIVE);
+        }
+
+        @Test
+        @DisplayName("OWNER can soft-delete a user")
+        void ownerSoftDeletesUser() {
+            mockSecurityContext("OWNER");
+            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+            when(userRepository.save(testUser)).thenReturn(testUser);
+            when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
+
+            userService.updateUserStatus(userId, new UpdateStatusRequest(UserStatus.DELETED));
+
+            assertThat(testUser.getStatus()).isEqualTo(UserStatus.DELETED);
+        }
+
+        @Test
+        @DisplayName("OPERATOR cannot soft-delete — throws ForbiddenException")
+        void operatorCannotDelete() {
+            mockSecurityContext("OPERATOR");
+            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+
+            assertThatThrownBy(() ->
+                userService.updateUserStatus(userId, new UpdateStatusRequest(UserStatus.DELETED))
+            ).isInstanceOf(com.intesi.ums.exception.ForbiddenException.class);
+        }
+
+        @Test
+        @DisplayName("OPERATOR cannot act on an OWNER — throws ForbiddenException")
+        void operatorCannotActOnOwner() {
+            mockSecurityContext("OPERATOR");
+            testUser.getRoles().clear();
+            testUser.getRoles().add(ApplicationRole.OWNER);
+            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+
+            assertThatThrownBy(() ->
+                userService.updateUserStatus(userId, new UpdateStatusRequest(UserStatus.DISABLED))
+            ).isInstanceOf(com.intesi.ums.exception.ForbiddenException.class);
+        }
+
+        @Test
+        @DisplayName("is idempotent — no-op if target already has the requested status")
+        void idempotentOnSameStatus() {
+            mockSecurityContext("OWNER");
             testUser.setStatus(UserStatus.DISABLED);
             when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
             when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
 
-            userService.disableUser(userId);
+            userService.updateUserStatus(userId, new UpdateStatusRequest(UserStatus.DISABLED));
 
             verify(userRepository, never()).save(any());
         }
-    }
-
-    @Nested
-    @DisplayName("deleteUser")
-    class DeleteUser {
 
         @Test
-        @DisplayName("soft-deletes an active user")
-        void softDeletesUser() {
+        @DisplayName("throws IllegalStateTransitionException when acting on a DELETED user")
+        void throwsOnDeletedTarget() {
+            mockSecurityContext("OWNER");
+            testUser.setStatus(UserStatus.DELETED);
             when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(userRepository.save(testUser)).thenReturn(testUser);
 
-            userService.deleteUser(userId);
-
-            assertThat(testUser.getStatus()).isEqualTo(UserStatus.DELETED);
+            assertThatThrownBy(() ->
+                userService.updateUserStatus(userId, new UpdateStatusRequest(UserStatus.ACTIVE))
+            ).isInstanceOf(com.intesi.ums.exception.IllegalStateTransitionException.class);
         }
+    }
+
+    // ---- helpers ----
+
+    private void mockSecurityContext(String role) {
+        var auth = mock(org.springframework.security.core.Authentication.class);
+        var authority = mock(org.springframework.security.core.GrantedAuthority.class);
+        when(authority.getAuthority()).thenReturn("ROLE_" + role);
+        when(auth.getAuthorities()).thenAnswer(inv -> java.util.List.of(authority));
+        var ctx = mock(org.springframework.security.core.context.SecurityContext.class);
+        when(ctx.getAuthentication()).thenReturn(auth);
+        org.springframework.security.core.context.SecurityContextHolder.setContext(ctx);
     }
 }

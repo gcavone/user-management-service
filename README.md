@@ -92,15 +92,14 @@ Full interactive documentation: **http://localhost:8080/swagger-ui.html**
 | GET | `/api/v1/users/{id}` | REPORTER | Get user by ID |
 | POST | `/api/v1/users` | MAINTAINER | Create user |
 | PATCH | `/api/v1/users/{id}` | MAINTAINER | Update user data/roles |
-| PATCH | `/api/v1/users/{id}/disable` | OPERATOR | Disable user |
-| DELETE | `/api/v1/users/{id}` | OWNER | Soft-delete user |
+| PATCH | `/api/v1/users/{id}/status` | OPERATOR | Update user status (ACTIVE/DISABLED/DELETED) |
 
 ### Role hierarchy
 
 | Role | Endpoints | Sensitive data (email, CF) | Assignable roles |
 |------|-----------|---------------------------|-----------------|
-| OWNER | Full access: create, read, update, disable, delete. Can filter users by `status=DELETED` | Visible | OWNER, OPERATOR, MAINTAINER, DEVELOPER, REPORTER |
-| OPERATOR | Create, read, update, disable | Visible | OPERATOR, MAINTAINER, DEVELOPER, REPORTER |
+| OWNER | Full access: create, read, update, manage status (disable/enable/delete). Can filter users by `status=DELETED` | Visible | OWNER, OPERATOR, MAINTAINER, DEVELOPER, REPORTER |
+| OPERATOR | Create, read, update, disable/enable users (not OWNER targets, not soft-delete) | Visible | OPERATOR, MAINTAINER, DEVELOPER, REPORTER |
 | MAINTAINER | Create, read, update | Visible | MAINTAINER, DEVELOPER, REPORTER |
 | DEVELOPER | Read-only | Visible | — |
 | REPORTER | Read-only | Masked | — |
@@ -199,12 +198,24 @@ The database is pre-populated with 100 sample users covering all statuses (ACTIV
 
 > **Note:** To start with an empty database, remove or rename `src/main/resources/db/migration/V2__seed_data.sql` before running `docker-compose up`.
 
-### Soft Delete
+### Soft Delete & Status Management
 
-Users are never physically deleted. `DELETE /users/{id}` sets `status = 'DELETED'`. Reasons:
+Users are never physically deleted. Status transitions are managed via `PATCH /users/{id}/status`.
+
+**Allowed transitions:**
+
+| From → To | ACTIVE | DISABLED | DELETED |
+|-----------|--------|----------|---------|
+| ACTIVE    | no-op  | ✅ OWNER, OPERATOR | ✅ OWNER only |
+| DISABLED  | ✅ OWNER, OPERATOR | no-op | ✅ OWNER only |
+| DELETED   | ❌ illegal | ❌ illegal | ❌ illegal |
+
+**Hierarchy check:** a caller cannot act on a user whose highest role has greater privilege than their own. An OPERATOR cannot disable/enable an OWNER.
+
+**Soft delete is irreversible via API.** A deleted user can only be restored by an ops team member directly in the database. Reasons:
 - Audit trail preserved
 - Foreign key references remain valid
-- Reversible by ops team directly in DB if needed
+- Deliberate friction: soft delete has compliance implications and must not be accidental
 
 Deleted users are excluded from all queries by default. Only OWNER can retrieve them explicitly via `GET /api/v1/users?status=DELETED`.
 

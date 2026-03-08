@@ -6,6 +6,7 @@ import com.intesi.ums.domain.UserStatus;
 import com.intesi.ums.dto.CreateUserRequest;
 import com.intesi.ums.dto.ErrorResponse;
 import com.intesi.ums.dto.PagedResponse;
+import com.intesi.ums.dto.UpdateStatusRequest;
 import com.intesi.ums.dto.UpdateUserRequest;
 import com.intesi.ums.dto.UserResponse;
 import com.intesi.ums.service.UserService;
@@ -118,23 +119,32 @@ public class UserController {
         return ResponseEntity.ok(userService.updateUser(id, request));
     }
 
-    @PatchMapping("/{id}/disable")
+    @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('OWNER', 'OPERATOR')")
-    @Operation(summary = "Disable a user", description = "Sets user status to DISABLED. Idempotent.")
-    public ResponseEntity<UserResponse> disableUser(@PathVariable UUID id) {
-        return ResponseEntity.ok(userService.disableUser(id));
-    }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('OWNER')")
     @Operation(
-        summary = "Soft-delete a user",
-        description = "Marks user as DELETED. The record is retained for audit purposes but excluded from all queries."
+        summary = "Update user status",
+        description = """
+            Updates the status of a user. Allowed transitions:
+            - ACTIVE → DISABLED  (OWNER, OPERATOR)
+            - ACTIVE → DELETED   (OWNER only)
+            - DISABLED → ACTIVE  (OWNER, OPERATOR)
+            - DISABLED → DELETED (OWNER only)
+            - DELETED → *        always illegal — soft delete is irreversible via API.
+            
+            Caller cannot act on a user whose highest role has greater privilege than their own.
+            Example: OPERATOR cannot disable/enable an OWNER.
+            """
     )
-    @ApiResponse(responseCode = "204", description = "User deleted")
-    public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
-        userService.deleteUser(id);
-        return ResponseEntity.noContent().build();
+    @ApiResponse(responseCode = "200", description = "Status updated")
+    @ApiResponse(responseCode = "403", description = "Insufficient permissions or target has higher privilege",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "422", description = "Illegal state transition (e.g. acting on a DELETED user)",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public ResponseEntity<UserResponse> updateUserStatus(
+        @PathVariable UUID id,
+        @Valid @RequestBody UpdateStatusRequest request
+    ) {
+        return ResponseEntity.ok(userService.updateUserStatus(id, request));
     }
 
     // ---- helpers ----
