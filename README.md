@@ -97,13 +97,15 @@ Full interactive documentation: **http://localhost:8080/swagger-ui.html**
 
 ### Role hierarchy
 
-| Role | Endpoints | Sensitive data (email, CF) |
-|------|-----------|---------------------------|
-| OWNER | Full access: create, read, update, disable, delete. Can filter users by `status=DELETED` | Visible |
-| OPERATOR | Create, read, update, disable | Visible |
-| MAINTAINER | Create, read, update | Visible |
-| DEVELOPER | Read-only | Visible |
-| REPORTER | Read-only | Masked |
+| Role | Endpoints | Sensitive data (email, CF) | Assignable roles |
+|------|-----------|---------------------------|-----------------|
+| OWNER | Full access: create, read, update, disable, delete. Can filter users by `status=DELETED` | Visible | OWNER, OPERATOR, MAINTAINER, DEVELOPER, REPORTER |
+| OPERATOR | Create, read, update, disable | Visible | OPERATOR, MAINTAINER, DEVELOPER, REPORTER |
+| MAINTAINER | Create, read, update | Visible | MAINTAINER, DEVELOPER, REPORTER |
+| DEVELOPER | Read-only | Visible | — |
+| REPORTER | Read-only | Masked | — |
+
+> **Note:** When creating or updating a user, a caller can only assign roles with equal or lower privilege than their own. Attempting to assign a higher-privilege role returns `403 PRIVILEGE_ESCALATION`.
 
 ### Query Parameters for List
 
