@@ -114,7 +114,7 @@ Full interactive documentation: **http://localhost:8080/swagger-ui.html**
 | `search` | string | Free-text search on username, email, nome, cognome |
 | `page` | int (default: 0) | Page number (0-indexed) |
 | `size` | int (default: 20, max: 100) | Page size |
-| `sortBy` | string (default: `createdAt`) | Sort field (any User field: id, username, email, nome, cognome, status, createdAt, updatedAt) |
+| `sortBy` | `createdAt` \| `updatedAt` \| `username` \| `email` \| `nome` \| `cognome` \| `status` (default: `createdAt`) | Sort field |
 | `direction` | `ASC` \| `DESC` (default: `DESC`) | Sort direction |
 
 ---
@@ -312,6 +312,7 @@ Results are visible at `https://github.com/<username>/<repo>/actions`.
 
 ```
 src/main/java/com/intesi/ums/
+├── UserManagementServiceApplication.java  # Spring Boot entry point
 ├── config/
 │   ├── SecurityConfig.java        # OAuth2 Resource Server, Keycloak JWT converter
 │   ├── RabbitMQConfig.java        # Exchange, queues, DLQ topology
@@ -327,6 +328,7 @@ src/main/java/com/intesi/ums/
 ├── dto/
 │   ├── CreateUserRequest.java     # Validated creation payload
 │   ├── UpdateUserRequest.java     # Partial update payload
+│   ├── UpdateStatusRequest.java   # Status transition payload (ACTIVE/DISABLED/DELETED)
 │   ├── UserResponse.java          # Response DTO with masking helpers
 │   ├── PagedResponse.java         # Generic pagination wrapper
 │   └── ErrorResponse.java        # Standardised error structure
@@ -334,6 +336,8 @@ src/main/java/com/intesi/ums/
 │   ├── UserNotFoundException.java
 │   ├── DuplicateResourceException.java
 │   ├── IllegalStateTransitionException.java
+│   ├── ForbiddenException.java
+│   ├── PrivilegeEscalationException.java
 │   └── GlobalExceptionHandler.java  # Centralised error mapping
 ├── mapper/
 │   └── UserMapper.java            # MapStruct: full + masked response variants

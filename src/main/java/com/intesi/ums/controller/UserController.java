@@ -43,7 +43,7 @@ public class UserController {
 
     private final UserService userService;
 
-    enum SortField { createdAt, updatedAt, username, email, cognome, nome }
+    enum SortField { createdAt, updatedAt, username, email, cognome, nome, status }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('OWNER', 'OPERATOR', 'MAINTAINER', 'DEVELOPER', 'REPORTER')")

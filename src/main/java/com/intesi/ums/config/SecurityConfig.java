@@ -28,8 +28,8 @@ import java.util.stream.Collectors;
  * - Method-level security (@PreAuthorize) is enabled for fine-grained RBAC
  *
  * Role hierarchy (same roles defined in the domain):
- *   OWNER      - full access: create, read, update, disable, delete + unmasked data
- *   OPERATOR   - create, read, update, disable + unmasked data
+ *   OWNER      - full access: create, read, update, manage status (disable/enable/delete) + unmasked data
+ *   OPERATOR   - create, read, update, disable/enable (not OWNER targets, not soft-delete) + unmasked data
  *   MAINTAINER - create, read, update + unmasked data
  *   DEVELOPER  - read-only + unmasked data
  *   REPORTER   - read-only + masked email and CF
