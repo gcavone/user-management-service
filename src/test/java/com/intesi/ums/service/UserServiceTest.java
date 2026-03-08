@@ -61,7 +61,7 @@ class UserServiceTest {
             .nome("Mario")
             .cognome("Rossi")
             .status(UserStatus.ACTIVE)
-            .roles(Set.of(ApplicationRole.DEVELOPER))
+            .roles(new java.util.HashSet<>(Set.of(ApplicationRole.DEVELOPER)))
             .createdAt(Instant.now())
             .updatedAt(Instant.now())
             .build();
@@ -301,10 +301,10 @@ class UserServiceTest {
     private void mockSecurityContext(String role) {
         var auth = mock(org.springframework.security.core.Authentication.class);
         var authority = mock(org.springframework.security.core.GrantedAuthority.class);
-        when(authority.getAuthority()).thenReturn("ROLE_" + role);
-        when(auth.getAuthorities()).thenAnswer(inv -> java.util.List.of(authority));
+        lenient().when(authority.getAuthority()).thenReturn("ROLE_" + role);
+        lenient().when(auth.getAuthorities()).thenAnswer(inv -> java.util.List.of(authority));
         var ctx = mock(org.springframework.security.core.context.SecurityContext.class);
-        when(ctx.getAuthentication()).thenReturn(auth);
+        lenient().when(ctx.getAuthentication()).thenReturn(auth);
         org.springframework.security.core.context.SecurityContextHolder.setContext(ctx);
     }
 }
