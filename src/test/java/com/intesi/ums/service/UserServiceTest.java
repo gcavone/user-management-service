@@ -202,6 +202,56 @@ class UserServiceTest {
     }
 
     @Nested
+    @DisplayName("updateUser")
+    class UpdateUser {
+
+        @Test
+        @DisplayName("OWNER can update any user")
+        void ownerCanUpdateAnyUser() {
+            mockSecurityContext("OWNER");
+            UpdateUserRequest request = new UpdateUserRequest("new.username", null, null, null);
+            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+            when(userRepository.existsActiveByUsernameIgnoreCase("new.username")).thenReturn(false);
+            when(userRepository.save(testUser)).thenReturn(testUser);
+            when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
+
+            userService.updateUser(userId, request);
+
+            verify(userRepository).save(testUser);
+        }
+
+        @Test
+        @DisplayName("OPERATOR cannot update an OWNER — throws ForbiddenException")
+        void operatorCannotUpdateOwner() {
+            mockSecurityContext("OPERATOR");
+            testUser.getRoles().clear();
+            testUser.getRoles().add(ApplicationRole.OWNER);
+            UpdateUserRequest request = new UpdateUserRequest("new.username", null, null, null);
+            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+
+            assertThatThrownBy(() -> userService.updateUser(userId, request))
+                .isInstanceOf(com.intesi.ums.exception.ForbiddenException.class);
+
+            verify(userRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("MAINTAINER cannot update an OPERATOR — throws ForbiddenException")
+        void maintainerCannotUpdateOperator() {
+            mockSecurityContext("MAINTAINER");
+            testUser.getRoles().clear();
+            testUser.getRoles().add(ApplicationRole.OPERATOR);
+            UpdateUserRequest request = new UpdateUserRequest("new.username", null, null, null);
+            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+
+            assertThatThrownBy(() -> userService.updateUser(userId, request))
+                .isInstanceOf(com.intesi.ums.exception.ForbiddenException.class);
+
+            verify(userRepository, never()).save(any());
+        }
+    }
+
+    @Nested
     @DisplayName("updateUserStatus")
     class UpdateUserStatus {
 
