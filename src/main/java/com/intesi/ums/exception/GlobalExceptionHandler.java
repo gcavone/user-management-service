@@ -137,6 +137,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, "FORBIDDEN", ex.getMessage(), request);
     }
 
+    @ExceptionHandler(PrivilegeEscalationException.class)
+    public ResponseEntity<ErrorResponse> handlePrivilegeEscalation(PrivilegeEscalationException ex, HttpServletRequest request) {
+        log.warn("Privilege escalation attempt: {}", ex.getMessage());
+        return build(HttpStatus.FORBIDDEN, "PRIVILEGE_ESCALATION", ex.getMessage(), request);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, "FORBIDDEN", "Insufficient permissions", request);

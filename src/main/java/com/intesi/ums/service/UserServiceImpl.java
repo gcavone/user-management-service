@@ -1,7 +1,10 @@
 package com.intesi.ums.service;
 
 import com.intesi.ums.domain.User;
+import com.intesi.ums.domain.ApplicationRole;
 import com.intesi.ums.domain.UserStatus;
+import com.intesi.ums.exception.PrivilegeEscalationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.intesi.ums.dto.CreateUserRequest;
 import com.intesi.ums.dto.PagedResponse;
 import com.intesi.ums.dto.UpdateUserRequest;
@@ -57,6 +60,7 @@ public class UserServiceImpl implements UserService {
         log.info("Creating user with username='{}', email='{}'", request.username(), request.email());
 
         validateUniqueConstraints(request);
+        validateRoleAssignment(request.roles());
 
         User user = userMapper.toEntity(request);
         // Normalise CF to uppercase for consistent storage and comparison
@@ -93,6 +97,7 @@ public class UserServiceImpl implements UserService {
 
         // Explicitly replace roles if provided
         if (request.roles() != null && !request.roles().isEmpty()) {
+            validateRoleAssignment(request.roles());
             user.getRoles().clear();
             user.getRoles().addAll(request.roles());
         }
@@ -143,6 +148,27 @@ public class UserServiceImpl implements UserService {
     private User findActiveOrThrow(UUID id) {
         return userRepository.findActiveById(id)
             .orElseThrow(() -> new UserNotFoundException(id));
+    }
+
+    /**
+     * Ensures the caller cannot assign roles with higher privilege than their own.
+     * Derives the caller's highest role from the Spring Security context.
+     */
+    private void validateRoleAssignment(java.util.Set<ApplicationRole> rolesToAssign) {
+        ApplicationRole callerRole = SecurityContextHolder.getContext()
+            .getAuthentication()
+            .getAuthorities()
+            .stream()
+            .map(a -> a.getAuthority().replace("ROLE_", ""))
+            .map(ApplicationRole::valueOf)
+            .min(java.util.Comparator.comparingInt(ApplicationRole::ordinal))
+            .orElseThrow();
+
+        rolesToAssign.forEach(role -> {
+            if (!role.isAssignableBy(callerRole)) {
+                throw new PrivilegeEscalationException(role);
+            }
+        });
     }
 
     private void validateUniqueConstraints(CreateUserRequest request) {
